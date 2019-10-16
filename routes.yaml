@@ -1,0 +1,28 @@
+routes:
+  /:
+    uses: MenuController@index
+    as: menu.index
+  /create:
+    uses: MenuController@create
+    as: menu.create
+  post@menu:
+    uses: MenuController@store
+    as: menu.store
+  delete@menu:
+    uses: MenuController@destroy
+    as: menu.destroy
+  /{menu}/items:
+    uses: MenuItemController@index
+    as: menu.item.index
+  post@{menu}/item:
+    uses: MenuItemController@store
+    as: menu.item.store
+  put@{menu}/item/{index}:
+    uses: MenuItemController@update
+    as: menu.item.update
+  delete@{menu}/item/{index}:
+    uses: MenuItemController@destroy
+    as: menu.item.destroy
+  /{locale}/items/search:
+    uses: MenuItemController@search
+    as: menu.item.search
