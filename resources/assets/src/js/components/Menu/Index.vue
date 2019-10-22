@@ -11,7 +11,7 @@
 
           <td class="cell-slug">
             <span class="column-label">Tag</span>
-            <span><code><span v-pre>&lcub;&lcub;</span> menu id="{{ item['slug'] }}" <span v-pre>&rcub;&rcub;</span></code></span>
+            <span><code><span v-pre>&lcub;&lcub;</span> menu src="{{ item['slug'] }}" <span v-pre>&rcub;&rcub;</span></code></span>
           </td>
 
           <td class="column-actions">
