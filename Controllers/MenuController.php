@@ -9,6 +9,12 @@ use Statamic\API\YAML;
 use Illuminate\Http\Request;
 
 class MenuController extends Controller {
+
+  /**
+   * Get all created menus
+   *
+   * @return \Illuminate\View\View
+   */
   public function index() {
     $files = Folder::disk('storage')->getFilesByType('addons/Menu', 'yaml');
     $menus = collect($files)->map(function ($item) {
@@ -23,6 +29,11 @@ class MenuController extends Controller {
     ]);
   }
 
+  /**
+   * Get template for create new menu
+   *
+   * @return \Illuminate\View\View
+   */
   public function create() {
     return $this->view('create', [
       'title' => 'Create new Menu',
@@ -30,6 +41,12 @@ class MenuController extends Controller {
     ]);
   }
 
+  /**
+   * Save new menu file
+   *
+   * @param Request $request
+   * @return array
+   */
   public function store(Request $request) {
     $name = $request->input('name');
     $locale = $request->input('locale');
@@ -50,6 +67,32 @@ class MenuController extends Controller {
     ];
   }
 
+  /**
+   * Update all menu, including tree and items.
+   * Useful for reordering items
+   *
+   * @param Request $request
+   * @param $name
+   * @return array
+   */
+  public function update(Request $request, $name) {
+    $entity = $this->storage->getYAML($name.'.yaml');
+    $entity['items'] = $request->input('items');
+
+    $this->storage->putYAML($name, $entity);
+
+    return [
+      'success' => true,
+      'message' => trans('cp.saved_success'),
+    ];
+  }
+
+  /**
+   * Delete menu file
+   *
+   * @param Request $request
+   * @return array
+   */
   public function destroy(Request $request) {
     $slug = $request->input('slug');
 
@@ -62,6 +105,11 @@ class MenuController extends Controller {
     ];
   }
 
+  /**
+   * Get all available activated locales
+   *
+   * @return array
+   */
   private function getAvailableLocales() {
     $settingsRaw = File::get('site/settings/system.yaml');
     $settings = YAML::parse($settingsRaw);

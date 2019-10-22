@@ -8,6 +8,9 @@ routes:
   post@menu:
     uses: MenuController@store
     as: menu.store
+  put@{menu}:
+    uses: MenuController@update
+    as: menu.update
   delete@menu:
     uses: MenuController@destroy
     as: menu.destroy
