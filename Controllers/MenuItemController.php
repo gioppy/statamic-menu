@@ -5,13 +5,16 @@ namespace Statamic\Addons\Menu\Controllers;
 
 
 use Illuminate\Http\Request;
-use Statamic\API\Content;
-use Statamic\API\File;
 use Statamic\API\Page;
-use Statamic\Data\Entries\Entry;
 
 class MenuItemController extends Controller {
 
+  /**
+   * Get all items
+   *
+   * @param string $menu
+   * @return \Illuminate\View\View
+   */
   public function index($menu) {
     $entity = $this->storage->getYAML($menu.'.yaml');
 
@@ -21,17 +24,18 @@ class MenuItemController extends Controller {
     ]);
   }
 
+  /**
+   * Save new item on tree
+   *
+   * @param Request $request
+   * @param string $menu
+   * @return array
+   */
   public function store(Request $request, $menu) {
     $entity = $this->storage->getYAML($menu.'.yaml');
+    $locale = $entity['locale'];
 
     $item = [
-      'attributes' => [
-        'title' => '',
-        'id' => '',
-        'class' => '',
-        'rel' => '',
-        'target' => '_self'
-      ],
       'items' => [],
     ];
 
@@ -40,24 +44,35 @@ class MenuItemController extends Controller {
       // link to exsisting content
       $page = Page::find($id);
 
+      // if the page doesnt have fieldset it means it is a collection?
+      $type = !is_null($page->get('fieldset')) ? $page->get('fieldset') : $page->get('mount');
+
+      // set locale
+      $page->locale($locale);
+
       $item['id'] = $id;
       $item['title'] = $page->get('title');
-      $item['type'] = 'Page';
+      $item['type'] = ucfirst($type);
+
+      // set attributes
+      $item['attributes'] = $this->menu_item_attributes();
+    } else {
+      $data = $request->input('data');
+
+      $item['type'] = 'Custom';
+      $item = array_merge($data, $item);
+
+      // set attributes
+      $item['attributes'] = $this->menu_item_attributes($data['attributes']);
     }
 
-    $entity['items'][] = $item;
-
-    $this->storage->putYAML($menu, $entity);
-
-    return [
-      'success' => true,
-      'message' => trans('cp.saved_success')
-    ];
-  }
-
-  public function update(Request $request, $menu, $index) {
-    $entity = $this->storage->getYAML($menu.'.yaml');
-    $entity['items'][$index] = $request->input('data');
+    if ($request->has('parent')) {
+      $entry = array_get($entity['items'], $request->input('parent'));
+      $entry['items'][] = $item;
+      array_set($entity['items'], $request->input('parent'), $entry);
+    } else {
+      $entity['items'][] = $item;
+    }
 
     $this->storage->putYAML($menu, $entity);
 
@@ -67,11 +82,48 @@ class MenuItemController extends Controller {
     ];
   }
 
+  /**
+   * Update data of one item
+   *
+   * @param Request $request
+   * @param string $menu
+   * @param string $index
+   * @return array
+   */
+  public function update(Request $request, $menu, $index) {
+    $entity = $this->storage->getYAML($menu.'.yaml');
+
+    array_set($entity['items'], $index, $request->input('item'));
+
+    $this->storage->putYAML($menu, $entity);
+
+    return [
+      'success' => true,
+      'message' => trans('cp.saved_success'),
+    ];
+  }
+
+  /**
+   * Delete one item from the tree
+   *
+   * @param string $menu
+   * @param string $index
+   * @return array
+   */
   public function destroy($menu, $index) {
     $entity = $this->storage->getYAML($menu.'.yaml');
 
-    unset($entity['items'][$index]);
-    $entity['items'] = array_values($entity['items']);
+    array_forget($entity['items'], $index);
+
+    $path = preg_replace('/(.[*\d+])$/x', '', $index);
+    $items = array_get($entity['items'], $path);
+
+    if (is_null($items)) {
+      $entity['items'] = array_values($entity['items']);
+    } else {
+      $parent = array_values(array_get($entity['items'], $path));
+      array_set($entity['items'], $path, $parent);
+    }
 
     $this->storage->putYAML($menu, $entity);
 
@@ -81,16 +133,23 @@ class MenuItemController extends Controller {
     ];
   }
 
+  /**
+   * Search saved page in a locale
+   *
+   * @param Request $request
+   * @param string $locale
+   * @return array
+   */
   public function search(Request $request, $locale) {
     $search = $request->query('s');
     $results = Page::all()
-      ->filter(function (\Statamic\Data\Pages\Page $entry) use ($search) {
-        $title = $entry->get('title');
-        $find = strpos($title, $search);
+      ->filter(function (\Statamic\Data\Pages\Page $entry) use ($search, $locale) {
+        $entry->locale($locale);
+        $title = strtolower($entry->get('title'));
+        $find = strpos($title, strtolower($search));
         return is_bool($find) ? false : true;
       })
       ->map(function (\Statamic\Data\Pages\Page $entry) {
-        //return [$entry->get('id') => $entry->get('title')];
         return [
           'id' => $entry->get('id'),
           'title' => $entry->get('title'),
@@ -102,5 +161,21 @@ class MenuItemController extends Controller {
     return [
       'suggestions' => $results
     ];
+  }
+
+  /**
+   * Build item attributes
+   *
+   * @param array $values
+   * @return array
+   */
+  private function menu_item_attributes(array $values = []) {
+    return array_merge([
+      'title' => '',
+      'id' => '',
+      'class' => '',
+      'rel' => '',
+      'target' => '_self'
+    ], $values);
   }
 }
