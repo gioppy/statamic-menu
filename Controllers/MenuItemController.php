@@ -44,11 +44,15 @@ class MenuItemController extends Controller {
       // link to exsisting content
       $page = Content::find($id);
 
+      // get original title if the translated version has same title of original
+      // statamic doesn't copy the title to translated yaml
+      $defaultTitle = $page->get('title');
+
       // set locale
       $page->locale($locale);
 
       $item['id'] = $id;
-      $item['title'] = $page->get('title');
+      $item['title'] = $page->get('title', $defaultTitle);
       $item['type'] = $page->fieldset()->title();
 
       // set attributes
@@ -141,15 +145,24 @@ class MenuItemController extends Controller {
     $search = $request->query('s');
     $results = Content::all()
       ->filter(function (\Statamic\Data\Content\Content $entry) use ($search, $locale) {
+        // get original title if the translated version has same title of original
+        // statamic doesn't copy the title to translated yaml
+        $default = $entry->get('title');
+
         $entry->locale($locale);
-        $title = strtolower($entry->get('title'));
+        $title = strtolower($entry->get('title', $default));
         $find = strpos($title, strtolower($search));
         return is_bool($find) ? false : true;
+      })
+      ->filter(function (\Statamic\Data\Content\Content $entry) {
+        // check if id is not null
+        // in some situation the id of the first filter result null
+        return !is_null($entry->get('id'));
       })
       ->map(function (\Statamic\Data\Content\Content $entry) {
         return [
           'id' => $entry->get('id'),
-          'title' => $entry->get('title'),
+          'title' => $entry->get('title', $entry->defaultData()['title']),
           'type' => $entry->fieldset()->title(),
         ];
       })
