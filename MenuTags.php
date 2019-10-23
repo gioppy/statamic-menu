@@ -2,8 +2,8 @@
 
 namespace Statamic\Addons\Menu;
 
+use Statamic\API\Content;
 use Statamic\API\File;
-use Statamic\API\Page;
 use Statamic\API\Parse;
 use Statamic\Extend\Tags;
 
@@ -67,7 +67,7 @@ class MenuTags extends Tags {
 
     if (isset($item['id'])) {
       //load page
-      $page = Page::find($item['id']);
+      $page = Content::find($item['id']);
       $page->locale($locale);
 
       $element['link'] = $page->absoluteUrl();
