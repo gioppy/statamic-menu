@@ -6,7 +6,7 @@
 
       <div>
         <ul class="shadow p-0">
-          <li class="block p-2 border-b-2 border-bg-light border-solid hover:text-blue cursor-pointer" v-for="item in suggestions" @click="selectSuggetion(item.id)">{{ item.title }}</li>
+          <li class="block p-2 border-b-2 border-bg-light border-solid hover:text-blue cursor-pointer" v-for="item in suggestions" @click="selectSuggetion(item.id)">{{ item.title }} <small class="text-muted">({{ item.type }})</small></li>
         </ul>
       </div>
     </div>

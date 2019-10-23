@@ -5,7 +5,7 @@ namespace Statamic\Addons\Menu\Controllers;
 
 
 use Illuminate\Http\Request;
-use Statamic\API\Page;
+use Statamic\API\Content;
 
 class MenuItemController extends Controller {
 
@@ -42,17 +42,14 @@ class MenuItemController extends Controller {
     if ($request->has('page')) {
       $id = $request->input('page');
       // link to exsisting content
-      $page = Page::find($id);
-
-      // if the page doesnt have fieldset it means it is a collection?
-      $type = !is_null($page->get('fieldset')) ? $page->get('fieldset') : $page->get('mount');
+      $page = Content::find($id);
 
       // set locale
       $page->locale($locale);
 
       $item['id'] = $id;
       $item['title'] = $page->get('title');
-      $item['type'] = ucfirst($type);
+      $item['type'] = $page->fieldset()->title();
 
       // set attributes
       $item['attributes'] = $this->menu_item_attributes();
@@ -142,17 +139,18 @@ class MenuItemController extends Controller {
    */
   public function search(Request $request, $locale) {
     $search = $request->query('s');
-    $results = Page::all()
-      ->filter(function (\Statamic\Data\Pages\Page $entry) use ($search, $locale) {
+    $results = Content::all()
+      ->filter(function (\Statamic\Data\Content\Content $entry) use ($search, $locale) {
         $entry->locale($locale);
         $title = strtolower($entry->get('title'));
         $find = strpos($title, strtolower($search));
         return is_bool($find) ? false : true;
       })
-      ->map(function (\Statamic\Data\Pages\Page $entry) {
+      ->map(function (\Statamic\Data\Content\Content $entry) {
         return [
           'id' => $entry->get('id'),
           'title' => $entry->get('title'),
+          'type' => $entry->fieldset()->title(),
         ];
       })
       ->values()
